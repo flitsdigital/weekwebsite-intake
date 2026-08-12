@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { PixelIcon, type IconName } from '@/components/icons';
+import { activeHref } from '@/lib/nav-active';
 
 const GROUPS: { label: string; items: { href: string; label: string; icon: IconName }[] }[] = [
   {
@@ -22,8 +23,13 @@ const GROUPS: { label: string; items: { href: string; label: string; icon: IconN
 export default function Nav({ compact = false }: { compact?: boolean }) {
   const pathname = usePathname();
 
-  const isActive = (href: string) =>
-    href === '/admin' ? pathname === '/admin' : pathname.startsWith(href);
+  const current = activeHref(
+    pathname,
+    GROUPS.flatMap((group) => group.items).map((item) => item.href),
+    ['/admin']
+  );
+
+  const isActive = (href: string) => href === current;
 
   if (compact) {
     return (
