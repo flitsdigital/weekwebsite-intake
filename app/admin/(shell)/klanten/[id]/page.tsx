@@ -13,13 +13,13 @@ import StatusDot from '@/components/status-dot';
 import {
   updateIntake,
   updateStatus,
-  saveNotes,
   regenerateToken,
   deleteIntake,
   saveStallReason,
   markReminded,
 } from '../../../actions';
 import CopyLink from './copy-link';
+import Notes, { type Note } from '@/components/notes';
 
 const field = 'min-h-10 w-full rounded-ww border border-line bg-white px-3 text-sm';
 const primary = 'min-h-10 rounded-ww bg-ink px-4 text-sm font-semibold text-white';
@@ -40,6 +40,13 @@ export default async function KlantPage({ params, searchParams }: PageProps<'/ad
   const status = parseStatus(intake.status);
 
   const files = await listIntakeFiles(supabaseFileStore(supabaseAdmin), id, THUMBNAIL_TTL);
+
+  const { data: notes } = await supabaseAdmin
+    .from('notes')
+    .select('id, body, author, created_at')
+    .eq('intake_id', id)
+    .order('created_at', { ascending: false })
+    .returns<Note[]>();
   const answers = (intake.answers ?? {}) as Record<string, string>;
   const signal = intakeSignal({
     status: intake.status,
@@ -258,16 +265,7 @@ export default async function KlantPage({ params, searchParams }: PageProps<'/ad
             </Card>
 
             <Card title="Notities" icon="note">
-              <form action={saveNotes.bind(null, id)} className="grid gap-2">
-                <textarea
-                  name="notes"
-                  rows={5}
-                  defaultValue={intake.notes ?? ''}
-                  placeholder="Afspraken uit telefoongesprekken"
-                  className={`${field} py-2`}
-                />
-                <button className={secondary}>Notities opslaan</button>
-              </form>
+              <Notes target="intake" id={id} notes={notes ?? []} />
             </Card>
 
             <form action={deleteIntake.bind(null, id)}>

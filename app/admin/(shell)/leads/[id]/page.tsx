@@ -6,6 +6,7 @@ import { LEAD_STATUS_LABEL, LEAD_STATUS_DOT, LOST_REASONS, DUE_LABEL } from '@/l
 import { LEAD_STATUSES, leadDue, parseLeadStatus, responseMinutes } from '@/lib/lead-status';
 import { formatDate } from '@/lib/dates';
 import { saveLeadFollowUp, updateLead, deleteLead } from '../../../lead-actions';
+import Notes, { type Note } from '@/components/notes';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +25,13 @@ export default async function LeadPage({ params }: PageProps<'/admin/leads/[id]'
   const today = new Date().toISOString().slice(0, 10);
   const due = leadDue({ status: lead.status, nextActionAt: lead.next_action_at }, today);
   const minuten = responseMinutes(lead.received_at, lead.first_attempt_at);
+
+  const { data: notes } = await supabaseAdmin
+    .from('notes')
+    .select('id, body, author, created_at')
+    .eq('lead_id', id)
+    .order('created_at', { ascending: false })
+    .returns<Note[]>();
 
   const titel = lead.company_name ?? lead.contact_name ?? 'Naamloze lead';
 
@@ -115,6 +123,10 @@ export default async function LeadPage({ params }: PageProps<'/admin/leads/[id]'
 
                 <button className={primary}>Opslaan</button>
               </form>
+            </Kaart>
+
+            <Kaart title="Notities" icon="note">
+              <Notes target="lead" id={id} notes={notes ?? []} />
             </Kaart>
 
             {Object.keys(lead.raw ?? {}).length > 0 && (

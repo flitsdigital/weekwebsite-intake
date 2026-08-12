@@ -90,15 +90,6 @@ export async function markReminded(id: string) {
   revalidatePath(`/admin/klanten/${id}`);
 }
 
-export async function saveNotes(id: string, formData: FormData) {
-  await supabaseAdmin
-    .from('intakes')
-    .update({ notes: String(formData.get('notes') ?? '') })
-    .eq('id', id);
-
-  revalidatePath(`/admin/klanten/${id}`);
-}
-
 export async function regenerateToken(id: string) {
   await supabaseAdmin.from('intakes').update({ token: newToken() }).eq('id', id);
   revalidatePath(`/admin/klanten/${id}`);
