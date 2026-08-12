@@ -56,6 +56,17 @@ export default function IntakeForm({
     stepRef.current = step;
   }, [step]);
 
+  // Meld één keer dat de link geopend is. Vanuit de browser, want linkvoorbeelden
+  // van WhatsApp en iMessage voeren geen JavaScript uit.
+  useEffect(() => {
+    fetch('/api/intake/opened', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ token }),
+      keepalive: true,
+    }).catch(() => {});
+  }, [token]);
+
   useEffect(() => {
     if (!mounted.current) {
       mounted.current = true;

@@ -20,6 +20,30 @@ export function daysUntil(dbDate: string | null, now = Date.now()): number | nul
   return Math.ceil((fromDbDate(dbDate).getTime() - now) / DAY);
 }
 
+/**
+ * Hele werkdagen tussen twee momenten. Telt de dagen ná `from` tot en met de dag
+ * van `to`, weekenden overgeslagen — dezelfde rekenwijze als de opleverdatum.
+ */
+export function workingDaysBetween(from: string | number | Date, to: string | number | Date) {
+  const day = (value: string | number | Date) => {
+    const d = new Date(value);
+    d.setHours(12, 0, 0, 0);
+    return d;
+  };
+
+  const cursor = day(from);
+  const end = day(to);
+  let working = 0;
+
+  while (cursor < end) {
+    cursor.setDate(cursor.getDate() + 1);
+    const weekday = cursor.getDay();
+    if (weekday !== 0 && weekday !== 6) working++;
+  }
+
+  return working;
+}
+
 export function formatDate(value: string | null): string | null {
   if (!value) return null;
   return new Intl.DateTimeFormat('nl-NL', {

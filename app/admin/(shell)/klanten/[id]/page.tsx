@@ -5,11 +5,20 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { listIntakeFiles, supabaseFileStore } from '@/lib/intake-files';
 import { STEPS, TOTAL_STEPS } from '@/lib/questions';
 import { progressPercent } from '@/lib/progress';
-import { STATUS_LABEL } from '@/lib/copy';
-import { daysSince, formatDate } from '@/lib/dates';
+import { STATUS_LABEL, STALL_REASONS } from '@/lib/copy';
+import { formatDate } from '@/lib/dates';
+import { intakeSignal, signalText } from '@/lib/intake-signal';
 import { STATUSES, parseStatus } from '@/lib/intake-status';
 import StatusDot from '@/components/status-dot';
-import { updateIntake, updateStatus, saveNotes, regenerateToken, deleteIntake } from '../../../actions';
+import {
+  updateIntake,
+  updateStatus,
+  saveNotes,
+  regenerateToken,
+  deleteIntake,
+  saveStallReason,
+  markReminded,
+} from '../../../actions';
 import CopyLink from './copy-link';
 
 const field = 'min-h-10 w-full rounded-ww border border-line bg-white px-3 text-sm';
@@ -32,7 +41,14 @@ export default async function KlantPage({ params, searchParams }: PageProps<'/ad
 
   const files = await listIntakeFiles(supabaseFileStore(supabaseAdmin), id, THUMBNAIL_TTL);
   const answers = (intake.answers ?? {}) as Record<string, string>;
-  const idle = daysSince(intake.updated_at) ?? 0;
+  const signal = intakeSignal({
+    status: intake.status,
+    openedAt: intake.opened_at,
+    startedAt: intake.started_at,
+    lastCustomerActivityAt: intake.last_customer_activity_at,
+    currentStep: intake.current_step,
+  });
+  const melding = signalText(signal);
   const percent = progressPercent(answers);
   const link = `${process.env.NEXT_PUBLIC_APP_URL}/i/${intake.token}`;
 
@@ -45,8 +61,12 @@ export default async function KlantPage({ params, searchParams }: PageProps<'/ad
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
             {status && <StatusDot status={status} label />}
             <span>{percent}% ingevuld</span>
-            <span>stap {intake.current_step}/{TOTAL_STEPS}</span>
-            <span>{idle === 0 ? 'vandaag actief' : `${idle} dagen stil`}</span>
+            <span>
+              stap {intake.current_step}/{TOTAL_STEPS}
+              {intake.max_step_reached > intake.current_step &&
+                ` (kwam tot ${intake.max_step_reached})`}
+            </span>
+            {melding ? <span className="text-red-700">{melding}</span> : <span>Actief</span>}
             {intake.deadline_at && <span>oplevering {formatDate(intake.deadline_at)}</span>}
           </span>
         }
@@ -200,6 +220,40 @@ export default async function KlantPage({ params, searchParams }: PageProps<'/ad
                   className={field}
                 />
                 <button className={secondary}>Gegevens opslaan</button>
+              </form>
+            </Card>
+
+            <Card title="Opvolging" icon="clock">
+              <p className="text-sm">
+                {melding ? (
+                  <span className="font-semibold text-red-700">{melding}</span>
+                ) : (
+                  <span className="text-muted">Geen signaal — de klant is recent bezig geweest.</span>
+                )}
+              </p>
+
+              <form action={saveStallReason.bind(null, id)} className="mt-3 grid gap-2">
+                <label className="text-xs font-semibold tracking-wide text-muted uppercase">
+                  Reden van vertraging
+                </label>
+                <select name="stall_reason" defaultValue={intake.stall_reason ?? ''} className={field}>
+                  <option value="">Nog niet gevraagd</option>
+                  {Object.entries(STALL_REASONS).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+                <button className={secondary}>Reden opslaan</button>
+              </form>
+
+              <form action={markReminded.bind(null, id)} className="mt-3 border-t border-line pt-3">
+                <p className="mb-2 text-xs text-muted">
+                  {intake.last_reminder_at
+                    ? `Laatst herinnerd op ${formatDate(intake.last_reminder_at)}`
+                    : 'Nog niet herinnerd'}
+                </p>
+                <button className={secondary}>Herinnering verstuurd</button>
               </form>
             </Card>
 

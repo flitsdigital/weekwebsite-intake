@@ -108,7 +108,26 @@ where submitted_at is not null
   and max_step_reached < 5;
 
 -- ------------------------------------------------------------
--- 4. Controle — draai dit los en kijk of het klopt
+-- 4. max_step_reached laten bewaken door de database
+-- ------------------------------------------------------------
+-- Anders moet elk schrijfpad eraan denken: de opslagroute, het slepen op het
+-- bord, een handmatige correctie. Eén trigger dekt ze allemaal, en de kolom kan
+-- per definitie niet meer omlaag.
+create or replace function public.keep_max_step()
+returns trigger language plpgsql as $$
+begin
+  new.max_step_reached := greatest(coalesce(new.max_step_reached, 1), new.current_step);
+  return new;
+end $$;
+
+drop trigger if exists intakes_max_step on public.intakes;
+
+create trigger intakes_max_step
+before insert or update on public.intakes
+for each row execute function public.keep_max_step();
+
+-- ------------------------------------------------------------
+-- 5. Controle — draai dit los en kijk of het klopt
 -- ------------------------------------------------------------
 -- select company_name, status, current_step, max_step_reached,
 --        opened_at is not null as geopend,

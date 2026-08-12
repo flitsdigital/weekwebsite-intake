@@ -25,6 +25,8 @@ export async function POST(req: Request) {
     .single();
 
   if (error) return Response.json({ error: 'Vastleggen lukte niet.' }, { status: 500 });
+
+  await touchCustomerActivity(intake.id);
   return Response.json({ id: data.id });
 }
 
@@ -44,6 +46,15 @@ export async function DELETE(req: Request) {
 
   await supabaseAdmin.storage.from(BUCKET).remove([file.storage_path]);
   await supabaseAdmin.from('intake_files').delete().eq('id', file.id);
+  await touchCustomerActivity(intake.id);
 
   return Response.json({ ok: true });
+}
+
+/** Uploaden en verwijderen zijn net zo goed activiteit van de klant als typen. */
+async function touchCustomerActivity(intakeId: string) {
+  await supabaseAdmin
+    .from('intakes')
+    .update({ last_customer_activity_at: new Date().toISOString() })
+    .eq('id', intakeId);
 }

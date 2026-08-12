@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { daysSince, daysUntil, formatDate } from './dates.ts';
+import { daysSince, daysUntil, formatDate, workingDaysBetween } from './dates.ts';
 
 process.env.TZ = 'Europe/Amsterdam';
 
@@ -30,6 +30,25 @@ test('een datum uit de database verschuift geen dag door de tijdzone', () => {
     assert.match(formatDate('2026-08-20') ?? '', /20 aug/, `fout in ${tz}`);
   }
   process.env.TZ = 'Europe/Amsterdam';
+});
+
+test('werkdagen slaan het weekend over', () => {
+  const vrijdag = Date.parse('2026-08-07T10:00:00Z');
+  const zaterdag = Date.parse('2026-08-08T10:00:00Z');
+  const maandag = Date.parse('2026-08-10T10:00:00Z');
+  const woensdag = Date.parse('2026-08-12T10:00:00Z');
+
+  assert.equal(workingDaysBetween(vrijdag, vrijdag), 0, 'dezelfde dag');
+  assert.equal(workingDaysBetween(vrijdag, zaterdag), 0, 'zaterdag telt niet');
+  assert.equal(workingDaysBetween(vrijdag, maandag), 1, 'alleen maandag');
+  assert.equal(workingDaysBetween(vrijdag, woensdag), 3, 'ma, di, wo');
+  assert.equal(workingDaysBetween(maandag, woensdag), 2);
+});
+
+test('werkdagen tellen niet terug', () => {
+  const maandag = Date.parse('2026-08-10T10:00:00Z');
+  const vrijdag = Date.parse('2026-08-07T10:00:00Z');
+  assert.equal(workingDaysBetween(maandag, vrijdag), 0);
 });
 
 test('een tijdstempel wordt ook leesbaar weergegeven', () => {

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { PixelIcon } from '@/components/icons';
 import StatusDot from '@/components/status-dot';
 import { STATUS_LABEL } from '@/lib/copy';
-import { needsAttention, type Status } from '@/lib/intake-status';
+import type { Status } from '@/lib/intake-status';
 import { moveIntake } from '../../actions';
 
 export type Card = {
@@ -14,8 +14,9 @@ export type Card = {
   contact_name: string | null;
   status: Status;
   percent: number;
-  idle: number;
   deadline: string | null;
+  /** null als er niets aan de hand is. */
+  signal: string | null;
 };
 
 export default function Board({ cards, columns }: { cards: Card[]; columns: readonly Status[] }) {
@@ -87,16 +88,12 @@ export default function Board({ cards, columns }: { cards: Card[]; columns: read
                     </div>
 
                     <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
-                      <span
-                        className={`flex items-center gap-1 ${
-                          needsAttention(card.status, card.idle)
-                            ? 'font-semibold text-red-700'
-                            : 'text-muted'
-                        }`}
-                      >
-                        <PixelIcon name="clock" className="size-3" />
-                        {card.idle === 0 ? 'vandaag' : `${card.idle} d`}
-                      </span>
+                      {card.signal && (
+                        <span className="flex items-center gap-1 font-semibold text-red-700">
+                          <PixelIcon name="clock" className="size-3" />
+                          {card.signal}
+                        </span>
+                      )}
                       {card.deadline && (
                         <span className="flex items-center gap-1 text-muted">
                           <PixelIcon name="zap" className="size-3" />

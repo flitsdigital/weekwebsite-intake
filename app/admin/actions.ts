@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { createSessionClient } from '@/lib/supabase-server';
 import { parseStatus } from '@/lib/intake-status';
+import { parseStallReason } from '@/lib/copy';
 import { BUCKET } from '@/lib/storage';
 
 /** Twee UUID's zonder streepjes: 64 tekens, niet oplopend, niet te raden. */
@@ -69,6 +70,24 @@ export async function moveIntake(id: string, next: string) {
   revalidatePath('/admin/bord');
   revalidatePath('/admin/klanten');
   revalidatePath('/admin');
+}
+
+export async function saveStallReason(id: string, formData: FormData) {
+  const raw = formData.get('stall_reason');
+  const reason = raw === '' ? null : parseStallReason(raw);
+  if (raw !== '' && !reason) return;
+
+  await supabaseAdmin.from('intakes').update({ stall_reason: reason }).eq('id', id);
+  revalidatePath(`/admin/klanten/${id}`);
+}
+
+/** Stempelt wanneer je voor het laatst herinnerd hebt. */
+export async function markReminded(id: string) {
+  await supabaseAdmin
+    .from('intakes')
+    .update({ last_reminder_at: new Date().toISOString() })
+    .eq('id', id);
+  revalidatePath(`/admin/klanten/${id}`);
 }
 
 export async function saveNotes(id: string, formData: FormData) {

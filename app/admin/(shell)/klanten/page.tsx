@@ -5,8 +5,8 @@ import StatusDot from '@/components/status-dot';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { progressPercent } from '@/lib/progress';
 import { STATUS_LABEL } from '@/lib/copy';
-import { daysSince } from '@/lib/dates';
-import { STATUSES, needsAttention, parseStatus } from '@/lib/intake-status';
+import { intakeSignal, signalText } from '@/lib/intake-signal';
+import { STATUSES, parseStatus } from '@/lib/intake-status';
 import { TOTAL_STEPS } from '@/lib/questions';
 
 const control = 'min-h-10 rounded-ww border border-line bg-white px-3 text-sm';
@@ -18,7 +18,7 @@ export default async function KlantenPage({ searchParams }: PageProps<'/admin/kl
 
   let query = supabaseAdmin
     .from('intakes')
-    .select('id, company_name, contact_name, status, answers, current_step, updated_at')
+    .select('id, company_name, contact_name, status, answers, current_step, max_step_reached, opened_at, started_at, last_customer_activity_at')
     .order('updated_at', { ascending: false });
 
   if (activeStatus) query = query.eq('status', activeStatus);
@@ -95,15 +95,21 @@ export default async function KlantenPage({ searchParams }: PageProps<'/admin/kl
                   <th className="px-3 py-3 font-semibold">Status</th>
                   <th className="px-3 py-3 font-semibold">Voortgang</th>
                   <th className="px-3 py-3 font-semibold">Stap</th>
-                  <th className="px-5 py-3 text-right font-semibold">Laatste activiteit</th>
+                  <th className="px-5 py-3 text-right font-semibold">Signaal</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
                 {rows.map((row) => {
-                  const idle = daysSince(row.updated_at) ?? 0;
-                  const attention = needsAttention(row.status, idle);
                   const percent = progressPercent(row.answers);
                   const rowStatus = parseStatus(row.status);
+                  const signal = intakeSignal({
+                    status: row.status,
+                    openedAt: row.opened_at,
+                    startedAt: row.started_at,
+                    lastCustomerActivityAt: row.last_customer_activity_at,
+                    currentStep: row.current_step,
+                  });
+                  const melding = signalText(signal);
 
                   return (
                     <tr key={row.id} className="hover:bg-bg">
@@ -128,11 +134,18 @@ export default async function KlantenPage({ searchParams }: PageProps<'/admin/kl
                       </td>
                       <td className="px-3 py-3 tabular-nums text-muted">
                         {row.current_step}/{TOTAL_STEPS}
+                        {row.max_step_reached > row.current_step && (
+                          <span className="block text-xs">kwam tot {row.max_step_reached}</span>
+                        )}
                       </td>
-                      <td
-                        className={`px-5 py-3 text-right tabular-nums ${attention ? 'font-semibold text-red-700' : 'text-muted'}`}
-                      >
-                        {idle === 0 ? 'vandaag' : `${idle} dagen geleden`}
+                      <td className="px-5 py-3 text-right">
+                        {melding ? (
+                          <span className="font-semibold text-red-700">{melding}</span>
+                        ) : (
+                          <span className="text-muted">
+                            {signal.kind === 'actief' ? 'Actief' : '—'}
+                          </span>
+                        )}
                       </td>
                     </tr>
                   );

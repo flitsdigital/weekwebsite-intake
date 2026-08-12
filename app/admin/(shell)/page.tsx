@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import PageHeader from '@/components/page-header';
 import { PixelIcon } from '@/components/icons';
+import Funnel from '@/components/funnel';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { progressPercent } from '@/lib/progress';
 import { STATUS_LABEL } from '@/lib/copy';
-import { daysSince, daysUntil, formatDate } from '@/lib/dates';
-import { isActive, isWaiting, needsAttention, parseStatus } from '@/lib/intake-status';
+import { daysUntil, formatDate } from '@/lib/dates';
+import { isActive, isWaiting, parseStatus } from '@/lib/intake-status';
+import { intakeSignal, signalText } from '@/lib/intake-signal';
 
 // Zonder dit bakt Next de tellingen in de build en verandert het dashboard nooit meer.
 export const dynamic = 'force-dynamic';
@@ -16,35 +17,58 @@ type Row = {
   id: string;
   company_name: string;
   status: string;
+  created_at: string;
   updated_at: string;
   deadline_at: string | null;
-  answers: Record<string, string> | null;
+  opened_at: string | null;
+  started_at: string | null;
+  submitted_at: string | null;
+  last_customer_activity_at: string | null;
+  current_step: number;
+  max_step_reached: number;
 };
 
-export default async function DashboardPage() {
+function withinDays(rows: Row[], days: number | null) {
+  if (!days) return rows;
+  const cutoff = Date.now() - days * 86_400_000;
+  return rows.filter((row) => new Date(row.created_at).getTime() >= cutoff);
+}
+
+export default async function DashboardPage({ searchParams }: PageProps<'/admin'>) {
+  const { periode } = await searchParams;
+  const days = periode === '90' ? 90 : null;
+
   const { data } = await supabaseAdmin
     .from('intakes')
-    .select('id, company_name, status, updated_at, deadline_at, answers')
-    .neq('status', 'cancelled')
+    .select(
+      'id, company_name, status, created_at, updated_at, deadline_at, opened_at, started_at, submitted_at, last_customer_activity_at, current_step, max_step_reached'
+    )
     .order('updated_at', { ascending: false });
 
   const all = (data ?? []) as Row[];
-  const waiting = all.filter((r) => isWaiting(r.status));
-  const building = all.filter((r) => isActive(r.status));
 
-  const soon = all
+  // De trechter telt cancelled mee; de dagelijkse blokken niet.
+  const funnelRows = withinDays(all, days);
+
+  const lopend = all.filter((r) => r.status !== 'cancelled');
+  const waiting = lopend.filter((r) => isWaiting(r.status));
+  const building = lopend.filter((r) => isActive(r.status));
+
+  const soon = lopend
     .filter((r) => {
       if (r.status === 'live') return false;
-      const days = daysUntil(r.deadline_at);
-      return days !== null && days <= DEADLINE_SOON_DAYS;
+      const left = daysUntil(r.deadline_at);
+      return left !== null && left <= DEADLINE_SOON_DAYS;
     })
     .sort((a, b) => (a.deadline_at! < b.deadline_at! ? -1 : 1));
 
-  const attention = all.filter((r) => needsAttention(r.status, daysSince(r.updated_at) ?? 0));
+  const signals = waiting
+    .map((row) => ({ row, signal: intakeSignal({ ...row, openedAt: row.opened_at, startedAt: row.started_at, lastCustomerActivityAt: row.last_customer_activity_at, currentStep: row.current_step }) }))
+    .filter(({ signal }) => signal.kind !== 'actief' && signal.kind !== 'niet_van_toepassing');
 
   return (
     <>
-      <PageHeader title="Dashboard" subtitle={`${all.length} lopende opdrachten`} />
+      <PageHeader title="Dashboard" subtitle={`${lopend.length} lopende opdrachten`} />
 
       <div className="mx-auto w-full max-w-5xl px-6 py-8 lg:px-10">
         <div className="grid gap-4 sm:grid-cols-3">
@@ -52,11 +76,7 @@ export default async function DashboardPage() {
             value={waiting.length}
             label="Wacht op materiaal"
             dot="bg-accent"
-            hint={
-              attention.length
-                ? `${attention.length} langer dan 2 dagen stil`
-                : 'Allemaal recent actief'
-            }
+            hint={signals.length ? `${signals.length} vraagt om actie` : 'Allemaal recent actief'}
           />
           <Stat
             value={building.length}
@@ -72,22 +92,68 @@ export default async function DashboardPage() {
           />
         </div>
 
-        <Panel
-          title="Vraagt om aandacht"
-          icon="clock"
-          rows={attention}
-          empty="Niemand wacht te lang. Mooi."
-          right={(row) => `${daysSince(row.updated_at)} dagen stil`}
-          urgent
-        />
+        <section className="mt-6 overflow-hidden rounded-ww border border-line bg-white">
+          <h2 className="flex items-center gap-2 border-b border-line px-5 py-3 text-sm font-semibold">
+            <PixelIcon name="clock" className="size-4 text-muted" />
+            Vraagt om aandacht
+          </h2>
 
-        <Panel
-          title="Deadlines die eraan komen"
-          icon="zap"
-          rows={soon}
-          empty="Geen deadline binnen twee dagen."
-          right={(row) => formatDate(row.deadline_at) ?? ''}
-        />
+          {signals.length === 0 ? (
+            <p className="px-5 py-6 text-sm text-muted">Niemand hangt vast. Mooi.</p>
+          ) : (
+            <ul className="divide-y divide-line">
+              {signals.slice(0, 8).map(({ row, signal }) => (
+                <li key={row.id}>
+                  <Link
+                    href={`/admin/klanten/${row.id}`}
+                    className="flex items-center gap-4 px-5 py-3 hover:bg-bg"
+                  >
+                    <span className="min-w-0 flex-1 truncate font-medium">{row.company_name}</span>
+                    <span className="text-right text-sm text-red-700">{signalText(signal)}</span>
+                    <PixelIcon name="chevron" className="size-4 text-muted" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="mt-6 overflow-hidden rounded-ww border border-line bg-white">
+          <h2 className="flex items-center gap-2 border-b border-line px-5 py-3 text-sm font-semibold">
+            <PixelIcon name="zap" className="size-4 text-muted" />
+            Deadlines die eraan komen
+          </h2>
+          {soon.length === 0 ? (
+            <p className="px-5 py-6 text-sm text-muted">Geen deadline binnen twee dagen.</p>
+          ) : (
+            <ul className="divide-y divide-line">
+              {soon.slice(0, 6).map((row) => {
+                const status = parseStatus(row.status);
+                return (
+                  <li key={row.id}>
+                    <Link
+                      href={`/admin/klanten/${row.id}`}
+                      className="flex items-center gap-4 px-5 py-3 hover:bg-bg"
+                    >
+                      <span className="min-w-0 flex-1 truncate font-medium">
+                        {row.company_name}
+                      </span>
+                      <span className="hidden text-xs text-muted sm:block">
+                        {status && STATUS_LABEL[status]}
+                      </span>
+                      <span className="w-32 text-right text-sm tabular-nums text-muted">
+                        {formatDate(row.deadline_at)}
+                      </span>
+                      <PixelIcon name="chevron" className="size-4 text-muted" />
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+
+        <Funnel rows={funnelRows} days={days} />
       </div>
     </>
   );
@@ -113,59 +179,5 @@ function Stat({
       </p>
       <p className="mt-1 text-xs text-muted">{hint}</p>
     </div>
-  );
-}
-
-function Panel({
-  title,
-  icon,
-  rows,
-  empty,
-  right,
-  urgent,
-}: {
-  title: string;
-  icon: 'clock' | 'zap';
-  rows: Row[];
-  empty: string;
-  right: (row: Row) => string;
-  urgent?: boolean;
-}) {
-  return (
-    <section className="mt-6 overflow-hidden rounded-ww border border-line bg-white">
-      <h2 className="flex items-center gap-2 border-b border-line px-5 py-3 text-sm font-semibold">
-        <PixelIcon name={icon} className="size-4 text-muted" />
-        {title}
-      </h2>
-
-      {rows.length === 0 ? (
-        <p className="px-5 py-6 text-sm text-muted">{empty}</p>
-      ) : (
-        <ul className="divide-y divide-line">
-          {rows.slice(0, 6).map((row) => {
-            const status = parseStatus(row.status);
-            return (
-              <li key={row.id}>
-                <Link
-                  href={`/admin/klanten/${row.id}`}
-                  className="flex items-center gap-4 px-5 py-3 hover:bg-bg"
-                >
-                  <span className="min-w-0 flex-1 truncate font-medium">{row.company_name}</span>
-                  <span className="hidden text-xs text-muted sm:block">
-                    {status && STATUS_LABEL[status]} · {progressPercent(row.answers)}%
-                  </span>
-                  <span
-                    className={`w-32 text-right text-sm tabular-nums ${urgent ? 'text-red-700' : 'text-muted'}`}
-                  >
-                    {right(row)}
-                  </span>
-                  <PixelIcon name="chevron" className="size-4 text-muted" />
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </section>
   );
 }

@@ -27,7 +27,14 @@ export async function POST(req: Request) {
   // intake zo niet meer overschrijven.
   const { data, error } = await supabaseAdmin
     .from('intakes')
-    .update({ answers, current_step: step, status: 'in_progress' })
+    // last_customer_activity_at los van updated_at: die verspringt ook als het
+    // team een notitie opslaat, en dan lijkt een stille klant weer actief.
+    .update({
+      answers,
+      current_step: step,
+      status: 'in_progress',
+      last_customer_activity_at: new Date().toISOString(),
+    })
     .eq('token', body.token)
     .in('status', EDITABLE)
     .select('id, started_at')
