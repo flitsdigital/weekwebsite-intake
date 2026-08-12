@@ -27,8 +27,12 @@ create table if not exists public.leads (
 
   -- Eén datum. De status vertelt wat hij betekent: bij 'niet_bereikt' opnieuw
   -- bellen, bij 'afspraak' de afspraak zelf.
-  next_action_at  date,
-  last_attempt_at timestamptz,
+  next_action_at   date,
+
+  -- Twee tijdstippen, met opzet. De eerste poging is het getal dat de conversie
+  -- voorspelt ("bel binnen 5 minuten"); de laatste vertelt hoe warm het nog is.
+  first_attempt_at timestamptz,
+  last_attempt_at  timestamptz,
 
   lost_reason     text
                   check (lost_reason is null or lost_reason in (
@@ -39,6 +43,9 @@ create table if not exists public.leads (
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now()
 );
+
+-- Voor het geval de tabel al bestond van een eerdere versie van dit bestand.
+alter table public.leads add column if not exists first_attempt_at timestamptz;
 
 create index if not exists leads_status_idx      on public.leads (status);
 create index if not exists leads_next_action_idx on public.leads (next_action_at);

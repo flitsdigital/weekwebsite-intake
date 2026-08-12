@@ -7,6 +7,10 @@ import { activeHref } from '@/lib/nav-active';
 
 const GROUPS: { label: string; items: { href: string; label: string; icon: IconName }[] }[] = [
   {
+    label: 'Verkoop',
+    items: [{ href: '/admin/leads', label: 'Leads', icon: 'zap' }],
+  },
+  {
     label: 'Overzicht',
     items: [
       { href: '/admin', label: 'Dashboard', icon: 'home' },
@@ -16,7 +20,10 @@ const GROUPS: { label: string; items: { href: string; label: string; icon: IconN
   },
   {
     label: 'Toevoegen',
-    items: [{ href: '/admin/klanten/nieuw', label: 'Nieuwe klant', icon: 'plus' }],
+    items: [
+      { href: '/admin/leads/nieuw', label: 'Nieuwe lead', icon: 'plus' },
+      { href: '/admin/klanten/nieuw', label: 'Nieuwe klant', icon: 'plus' },
+    ],
   },
 ];
 
