@@ -8,7 +8,10 @@ import { formatDate } from '@/lib/dates';
 
 export const dynamic = 'force-dynamic';
 
-const control = 'min-h-10 rounded-ww border border-line bg-white px-3 text-sm';
+// Geen achtergrond in de basis: die zetten de tabs zelf. Stond hier bg-white,
+// dan botst dat met bg-ink in de actieve staat en beslist de volgorde in het
+// gegenereerde stylesheet wie wint — niet de volgorde hier.
+const tabBase = 'flex min-h-10 items-center rounded-ww border px-3 text-sm font-semibold';
 
 /** Vandaag toont alles waar je iets mee moet; "later" en afgesloten niet. */
 const AAN_DE_BEURT: Due[] = ['nieuw', 'te_laat', 'vandaag', 'geen_vervolg'];
@@ -176,7 +179,10 @@ function Tab({
   return (
     <Link
       href={href}
-      className={`${control} flex items-center font-semibold ${active ? 'border-ink bg-ink text-white' : 'text-muted'}`}
+      aria-current={active ? 'page' : undefined}
+      className={`${tabBase} ${
+        active ? 'border-ink bg-ink text-white' : 'border-line bg-white text-muted hover:text-ink'
+      }`}
     >
       {children}
     </Link>
