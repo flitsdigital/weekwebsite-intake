@@ -42,3 +42,4 @@ tabel `admins`. Alleen een sessie is niet genoeg.
 De domeinregels wonen in `lib/` en zijn los van React en Supabase te testen —
 de uploadwachtrij, de levensloop van een intake, de trechter, en wanneer een
 lead aan de beurt is.
+# weekwebsite-intake
