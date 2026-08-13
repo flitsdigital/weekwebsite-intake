@@ -32,11 +32,22 @@ klant, hoe kansrijk hij ook is.
 Het moment waarop een Lead een Intake **wordt**. Dit is de enige overgang tussen
 de twee, en hij gaat één kant op: een Intake wordt nooit weer een Lead.
 
-## Gesproken / Niet bereikt
+## Contactmoment
 
-Twee verschillende uitkomsten van bellen, en ze zijn met opzet uit elkaar
-gehouden omdat het vervolg verschilt. **Niet bereikt** betekent: nog eens
-proberen. **Gesproken** betekent: je hebt hem aan de lijn gehad en weet nu meer.
+Een poging om iemand te bereiken, met wat eruit kwam. Legt vast: wanneer, via
+welk kanaal (telefoon, WhatsApp, mail, langsgeweest), en de uitkomst — gesproken,
+niet opgenomen, voicemail ingesproken, teruggebeld gekregen, of afspraak gemaakt.
+
+Een contactmoment **is een Notitie** met die twee velden ingevuld. Er is geen
+aparte lijst: één tijdlijn per lead of klant, waarin sommige regels een gesprek
+zijn en andere een losse aantekening.
+
+## Nog niet gebeld
+
+Betekent: er is nog **geen enkel contactmoment**. Dit is geen status maar iets
+wat je afleidt. Een lead die je drie keer tevergeefs belde is dus wél benaderd,
+ook al heb je hem nooit gesproken — die hoort niet bovenaan alsof je hem nog
+moet ontdekken.
 
 ## Volgende actie
 
@@ -54,6 +65,9 @@ geformuleerd, niet waarderend — het is een aantekening over een persoon.
 Een **gedateerde regel** die je erbij typt, nooit een document dat je
 overschrijft. Notities zijn een logboek: je leest ze terug om te weten wat er
 wannéér gezegd is. Een notitie van vorige maand verandert niet meer.
+
+Een notitie met een kanaal en een uitkomst is een [Contactmoment]; zonder die
+twee is het een losse aantekening. Beide staan in dezelfde tijdlijn.
 
 Leads en Intakes hebben dezelfde soort notities, zodat ze bij *verkocht*
 gewoon meeverhuizen.

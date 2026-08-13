@@ -1,12 +1,12 @@
-/** De verkoopfase, in procesvolgorde. Zie CONTEXT.md en docs/adr/0002. */
-export const LEAD_STATUSES = [
-  'nieuw',
-  'niet_bereikt',
-  'gesproken',
-  'afspraak',
-  'gewonnen',
-  'verloren',
-] as const;
+/**
+ * De verkoopfase, in procesvolgorde. Zie CONTEXT.md en docs/adr/0002.
+ *
+ * 'niet_bereikt' staat hier bewust niet meer bij: dat is de uitkomst van één
+ * belpoging, niet de toestand van de lead. Bel je drie keer tevergeefs en krijg
+ * je hem de vierde keer te pakken, dan zijn er drie momenten "niet opgenomen"
+ * en is de lead 'gesproken'.
+ */
+export const LEAD_STATUSES = ['nieuw', 'gesproken', 'afspraak', 'gewonnen', 'verloren'] as const;
 
 export type LeadStatus = (typeof LEAD_STATUSES)[number];
 
@@ -30,18 +30,20 @@ export function parseLeadStatus(value: unknown): LeadStatus | null {
  * ook in Postgres. Dat scheelt tijdzonegedoe: een `date` heeft geen tijdstip.
  */
 export function leadDue(
-  lead: { status: string; nextActionAt: string | null },
+  lead: { status: string; nextActionAt: string | null; contactCount: number },
   today: string
 ): Due {
   if (!isOpen(lead.status)) return 'geen';
 
-  // Nog nooit gebeld gaat voor alles, ook als er al iets gepland staat.
-  if (lead.status === 'nieuw') return 'nieuw';
+  // Een geplande datum wint: je hebt bewust besloten wanneer je weer wat doet.
+  if (lead.nextActionAt) {
+    if (lead.nextActionAt < today) return 'te_laat';
+    if (lead.nextActionAt === today) return 'vandaag';
+    return 'later';
+  }
 
-  if (!lead.nextActionAt) return 'geen_vervolg';
-  if (lead.nextActionAt < today) return 'te_laat';
-  if (lead.nextActionAt === today) return 'vandaag';
-  return 'later';
+  // Zonder plan: nog nooit benaderd is dringender dan benaderd-maar-vergeten.
+  return lead.contactCount === 0 ? 'nieuw' : 'geen_vervolg';
 }
 
 /** Staat bovenaan het Vandaag-scherm; de rest volgt in deze volgorde. */

@@ -41,9 +41,29 @@ export default async function LeadsPage({ searchParams }: PageProps<'/admin/lead
     .select('id, company_name, contact_name, phone, status, next_action_at, received_at, first_attempt_at, source')
     .order('received_at', { ascending: false });
 
+  // Contactmomenten apart tellen: "nog niet gebeld" leiden we daaruit af,
+  // niet meer uit de status.
+  const { data: contacten } = await supabaseAdmin
+    .from('notes')
+    .select('lead_id')
+    .not('lead_id', 'is', null)
+    .not('channel', 'is', null);
+
+  const perLead = new Map<string, number>();
+  for (const { lead_id } of contacten ?? []) {
+    perLead.set(lead_id as string, (perLead.get(lead_id as string) ?? 0) + 1);
+  }
+
   const alle = ((data ?? []) as Row[]).map((row) => ({
     row,
-    due: leadDue({ status: row.status, nextActionAt: row.next_action_at }, today),
+    due: leadDue(
+      {
+        status: row.status,
+        nextActionAt: row.next_action_at,
+        contactCount: perLead.get(row.id) ?? 0,
+      },
+      today
+    ),
   }));
 
   const zichtbaar = (vandaag ? alle.filter((l) => AAN_DE_BEURT.includes(l.due)) : alle).sort(

@@ -6,60 +6,47 @@ process.env.TZ = 'Europe/Amsterdam';
 const VANDAAG = '2026-08-12';
 
 const lead = (over: Partial<Parameters<typeof leadDue>[0]> = {}) =>
-  leadDue({ status: 'gesproken', nextActionAt: '2026-08-20', ...over }, VANDAAG);
+  leadDue({ status: 'gesproken', nextActionAt: '2026-08-20', contactCount: 1, ...over }, VANDAAG);
 
-test('de levensloop staat vast en in procesvolgorde', () => {
-  assert.deepEqual(LEAD_STATUSES, [
-    'nieuw',
-    'niet_bereikt',
-    'gesproken',
-    'afspraak',
-    'gewonnen',
-    'verloren',
-  ]);
+test('niet_bereikt is geen leadstatus meer — dat is de uitkomst van één poging', () => {
+  assert.deepEqual(LEAD_STATUSES, ['nieuw', 'gesproken', 'afspraak', 'gewonnen', 'verloren']);
+  assert.equal(parseLeadStatus('niet_bereikt'), null);
 });
 
 test('een afgesloten lead vraagt niets meer', () => {
   assert.equal(isOpen('gewonnen'), false);
   assert.equal(isOpen('verloren'), false);
-  assert.equal(isOpen('nieuw'), true);
-  assert.equal(lead({ status: 'gewonnen', nextActionAt: '2020-01-01' }), 'geen');
-  assert.equal(lead({ status: 'verloren', nextActionAt: null }), 'geen');
+  assert.equal(lead({ status: 'gewonnen', nextActionAt: null, contactCount: 0 }), 'geen');
 });
 
-test('een nieuwe lead is meteen aan de beurt — bel binnen 5 minuten', () => {
-  assert.equal(lead({ status: 'nieuw', nextActionAt: null }), 'nieuw');
-  assert.equal(
-    lead({ status: 'nieuw', nextActionAt: '2026-09-01' }),
-    'nieuw',
-    'ook als er al iets gepland staat: hij is nog nooit gebeld'
-  );
+test('nog nooit benaderd en niets gepland: meteen aan de beurt', () => {
+  assert.equal(lead({ status: 'nieuw', nextActionAt: null, contactCount: 0 }), 'nieuw');
 });
 
-test('een open lead zonder vervolgactie is vergeten, niet klaar', () => {
-  assert.equal(lead({ status: 'gesproken', nextActionAt: null }), 'geen_vervolg');
-  assert.equal(lead({ status: 'niet_bereikt', nextActionAt: null }), 'geen_vervolg');
+test('drie keer tevergeefs gebeld is niet hetzelfde als onontdekt', () => {
+  // Dit was de aanleiding: met de oude regel sprong zo iemand bovenaan alsof
+  // je hem nog moest ontdekken.
+  assert.equal(lead({ status: 'nieuw', nextActionAt: null, contactCount: 3 }), 'geen_vervolg');
 });
 
-test('te laat, vandaag en later zijn drie verschillende dingen', () => {
+test('een geplande datum wint van "nog nooit gebeld"', () => {
+  // Je hebt bewust besloten hem volgende week te bellen; dat respecteren we.
+  assert.equal(lead({ status: 'nieuw', nextActionAt: '2026-08-20', contactCount: 0 }), 'later');
+  assert.equal(lead({ status: 'nieuw', nextActionAt: '2026-08-11', contactCount: 0 }), 'te_laat');
+});
+
+test('te laat, vandaag en later blijven drie verschillende dingen', () => {
   assert.equal(lead({ nextActionAt: '2026-08-11' }), 'te_laat');
   assert.equal(lead({ nextActionAt: VANDAAG }), 'vandaag');
   assert.equal(lead({ nextActionAt: '2026-08-13' }), 'later');
 });
 
-test('parseLeadStatus is de rand waar een databasestring een status wordt', () => {
-  assert.equal(parseLeadStatus('afspraak'), 'afspraak');
-  assert.equal(parseLeadStatus('onzin'), null);
-  assert.equal(parseLeadStatus(null), null);
+test('benaderd maar niets gepland is vergeten, niet klaar', () => {
+  assert.equal(lead({ status: 'gesproken', nextActionAt: null, contactCount: 2 }), 'geen_vervolg');
 });
 
 test('reactietijd in minuten, want daar zit de conversie', () => {
-  assert.equal(
-    responseMinutes('2026-08-12T10:00:00Z', '2026-08-12T10:04:00Z'),
-    4,
-    'binnen vijf minuten gebeld'
-  );
-  assert.equal(responseMinutes('2026-08-12T10:00:00Z', '2026-08-13T10:00:00Z'), 1440);
+  assert.equal(responseMinutes('2026-08-12T10:00:00Z', '2026-08-12T10:04:00Z'), 4);
   assert.equal(responseMinutes('2026-08-12T10:00:00Z', null), null, 'nog niet gebeld');
   assert.equal(
     responseMinutes('2026-08-12T10:00:00Z', '2026-08-12T09:00:00Z'),

@@ -20,7 +20,6 @@ export function parseStallReason(value: unknown): string | null {
 
 export const LEAD_STATUS_LABEL: Record<LeadStatus, string> = {
   nieuw: 'Nieuw',
-  niet_bereikt: 'Niet bereikt',
   gesproken: 'Gesproken',
   afspraak: 'Afspraak staat',
   gewonnen: 'Gewonnen',
@@ -29,7 +28,6 @@ export const LEAD_STATUS_LABEL: Record<LeadStatus, string> = {
 
 export const LEAD_STATUS_DOT: Record<LeadStatus, string> = {
   nieuw: 'bg-accent',
-  niet_bereikt: 'bg-orange-500',
   gesproken: 'bg-btn',
   afspraak: 'bg-purple-600',
   gewonnen: 'bg-green-600',

@@ -19,7 +19,8 @@ import {
   markReminded,
 } from '../../../actions';
 import CopyLink from './copy-link';
-import Notes, { type Note } from '@/components/notes';
+import Timeline, { type Note } from '@/components/timeline';
+import { addNote, deleteNote } from '../../../note-actions';
 
 const field = 'min-h-10 w-full rounded-ww border border-line bg-white px-3 text-sm';
 const primary = 'min-h-10 rounded-ww bg-ink px-4 text-sm font-semibold text-white';
@@ -43,7 +44,7 @@ export default async function KlantPage({ params, searchParams }: PageProps<'/ad
 
   const { data: notes } = await supabaseAdmin
     .from('notes')
-    .select('id, body, author, created_at')
+    .select('id, body, author, created_at, channel, outcome')
     .eq('intake_id', id)
     .order('created_at', { ascending: false })
     .returns<Note[]>();
@@ -264,8 +265,12 @@ export default async function KlantPage({ params, searchParams }: PageProps<'/ad
               </form>
             </Card>
 
-            <Card title="Notities" icon="note">
-              <Notes target="intake" id={id} notes={notes ?? []} />
+            <Card title="Contact en notities" icon="note">
+              <Timeline
+                save={addNote.bind(null, 'intake', id)}
+                remove={deleteNote.bind(null, 'intake', id)}
+                notes={notes ?? []}
+              />
             </Card>
 
             <form action={deleteIntake.bind(null, id)}>

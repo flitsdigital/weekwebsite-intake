@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { parseLeadStatus } from '@/lib/lead-status';
 import { parseLostReason } from '@/lib/copy';
+import { addNote } from './note-actions';
 
 function refresh(id: string) {
   revalidatePath('/admin/leads');
@@ -42,7 +43,11 @@ export async function createLead(formData: FormData) {
  * je weer wat doen, en heb je zojuist gebeld. Dat scheelt drie knoppen op het
  * moment dat je nog aan de telefoon zit.
  */
-export async function saveLeadFollowUp(id: string, formData: FormData) {
+export async function saveLeadContact(id: string, formData: FormData) {
+  // Eén opslag legt het contactmoment vast én werkt de lead bij; je zit aan de
+  // telefoon en dan werken twee knoppen niet.
+  await addNote('lead', id, formData);
+
   const status = parseLeadStatus(formData.get('status'));
   if (!status) return;
 
@@ -55,20 +60,6 @@ export async function saveLeadFollowUp(id: string, formData: FormData) {
     // Een reden hoort alleen bij een verloren lead; anders blijft er een oude staan.
     lost_reason: status === 'verloren' ? parseLostReason(lostRaw) : null,
   };
-
-  if (formData.get('poging') === 'ja') {
-    const now = new Date().toISOString();
-    patch.last_attempt_at = now;
-
-    const { data: bestaand } = await supabaseAdmin
-      .from('leads')
-      .select('first_attempt_at')
-      .eq('id', id)
-      .maybeSingle();
-
-    // De eerste poging blijft staan: daar hangt de reactietijd aan.
-    if (!bestaand?.first_attempt_at) patch.first_attempt_at = now;
-  }
 
   await supabaseAdmin.from('leads').update(patch).eq('id', id);
   refresh(id);
