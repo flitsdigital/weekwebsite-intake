@@ -4,7 +4,7 @@ import PageHeader from '@/components/page-header';
 import { PixelIcon, type IconName } from '@/components/icons';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { listIntakeFiles, supabaseFileStore } from '@/lib/intake-files';
-import { STEPS, TOTAL_STEPS } from '@/lib/questions';
+import { STEPS, TOTAL_STEPS, isVisible } from '@/lib/questions';
 import { progressPercent } from '@/lib/progress';
 import { STATUS_LABEL, STALL_REASONS } from '@/lib/copy';
 import { formatDate } from '@/lib/dates';
@@ -141,7 +141,11 @@ export default async function KlantPage({ params, searchParams }: PageProps<'/ad
                 <div className="grid gap-6">
                   {STEPS.map((step) => {
                     const filled = step.questions.filter(
-                      (q) => q.type !== 'upload' && answers[q.key]?.trim()
+                      (q) =>
+                        q.type !== 'upload' &&
+                        q.type !== 'info' &&
+                        isVisible(q, answers) &&
+                        answers[q.key]?.trim()
                     );
                     if (!filled.length) return null;
 

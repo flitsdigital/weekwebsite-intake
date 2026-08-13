@@ -13,7 +13,9 @@ export type QuestionType =
   | 'email'
   | 'url'
   | 'radio'
-  | 'upload';
+  | 'upload'
+  /** Toont alleen tekst, slaat niets op. Voor een geruststelling bij een keuze. */
+  | 'info';
 
 export interface Question {
   key: string;
@@ -27,6 +29,12 @@ export interface Question {
   min?: number;
   max?: number;
   placeholder?: string;
+  /**
+   * Toon deze vraag alleen als een eerder antwoord precies deze waarde heeft.
+   * Bewust één sleutel en één waarde: meer dan dat hebben we niet nodig, en
+   * een expressietaal is niet te overzien in een formulier van vijf stappen.
+   */
+  showIf?: { key: string; equals: string };
 }
 
 export interface Step {
@@ -183,16 +191,39 @@ export const STEPS: Step[] = [
     subtitle: 'Bijna klaar — dit voorkomt gedoe bij het live zetten',
     questions: [
       {
+        key: 'heeft_domein',
+        type: 'radio',
+        label: 'Heb je al een domeinnaam?',
+        required: true,
+        options: ['Ja', 'Nee, nog niet', 'Weet ik niet'],
+      },
+      {
         key: 'domein',
         type: 'text',
-        label: 'Heb je al een domeinnaam?',
-        help: 'Nog niet? Vul dan in welke je zou willen hebben.',
+        label: 'Wat is je domeinnaam?',
+        placeholder: 'kievitafbouw.nl',
+        showIf: { key: 'heeft_domein', equals: 'Ja' },
       },
       {
         key: 'domein_provider',
         type: 'text',
         label: 'Bij welke partij staat je domeinnaam?',
         help: 'Bijvoorbeeld TransIP, Hostnet, Strato of Antagonist. Weet je het niet zeker? Vul "weet ik niet" in, dan zoeken wij het op.',
+        showIf: { key: 'heeft_domein', equals: 'Ja' },
+      },
+      {
+        key: 'domein_wens',
+        type: 'text',
+        label: 'Welke domeinnaam zou je willen hebben?',
+        help: 'Nog niet zeker? Vul in wat je in gedachten hebt, dan kijken wij of hij vrij is.',
+        showIf: { key: 'heeft_domein', equals: 'Nee, nog niet' },
+      },
+      {
+        key: 'domein_onbekend',
+        type: 'info',
+        label: 'Geen probleem, dat zoeken wij uit.',
+        help: 'We bellen je hierover voordat we je site live zetten. Je hoeft nu niets in te vullen.',
+        showIf: { key: 'heeft_domein', equals: 'Weet ik niet' },
       },
       {
         key: 'email_locatie',
@@ -223,9 +254,27 @@ export const STEPS: Step[] = [
   },
 ];
 
-/** Alle verplichte velden, voor de voortgangsberekening in de backoffice. */
-export const REQUIRED_KEYS = STEPS.flatMap((s) =>
-  s.questions.filter((q) => q.required).map((q) => q.key)
-);
+/**
+ * Is deze vraag zichtbaar bij deze antwoorden? Eén regel, gedeeld door het
+ * formulier, de voortgangsberekening en de backoffice — anders telt de
+ * voortgang velden mee die de klant nooit te zien krijgt en komt hij nooit
+ * op honderd procent.
+ */
+export function isVisible(question: Question, answers: Record<string, unknown> | null): boolean {
+  if (!question.showIf) return true;
+  return String(answers?.[question.showIf.key] ?? '') === question.showIf.equals;
+}
+
+/** De vragen van een stap die nu getoond moeten worden. */
+export function visibleQuestions(step: Step, answers: Record<string, unknown> | null): Question[] {
+  return step.questions.filter((q) => isVisible(q, answers));
+}
+
+/** Verplichte velden die bij deze antwoorden ook echt zichtbaar zijn. */
+export function requiredKeys(answers: Record<string, unknown> | null): string[] {
+  return STEPS.flatMap((s) =>
+    s.questions.filter((q) => q.required && isVisible(q, answers)).map((q) => q.key)
+  );
+}
 
 export const TOTAL_STEPS = STEPS.length;

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { STEPS, TOTAL_STEPS } from '@/lib/questions';
+import { STEPS, TOTAL_STEPS, visibleQuestions } from '@/lib/questions';
 import Field from './field';
 import type { ExistingFile } from './upload';
 
@@ -126,7 +126,7 @@ export default function IntakeForm({
         {current.subtitle && <p className="mt-1 text-muted">{current.subtitle}</p>}
 
         <div className="mt-8 grid gap-8">
-          {current.questions.map((q) => (
+          {visibleQuestions(current, answers).map((q) => (
             <Field
               key={q.key}
               q={q}

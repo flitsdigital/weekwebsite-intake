@@ -23,6 +23,16 @@ export default function Field({
   files: Record<string, ExistingFile[]>;
   whatsapp?: string;
 }) {
+  // Stelt gerust bij een keuze, slaat niets op.
+  if (q.type === 'info') {
+    return (
+      <div className="rounded-ww border border-line bg-white px-4 py-3">
+        <p className="font-semibold leading-snug">{q.label}</p>
+        {q.help && <p className="mt-1 text-sm text-muted">{q.help}</p>}
+      </div>
+    );
+  }
+
   if (q.type === 'upload') {
     return (
       <Upload
