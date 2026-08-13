@@ -1,6 +1,5 @@
 'use server';
 
-import { randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { supabaseAdmin } from '@/lib/supabase-admin';
@@ -8,9 +7,7 @@ import { createSessionClient } from '@/lib/supabase-server';
 import { parseStatus } from '@/lib/intake-status';
 import { parseStallReason } from '@/lib/copy';
 import { BUCKET } from '@/lib/storage';
-
-/** Twee UUID's zonder streepjes: 64 tekens, niet oplopend, niet te raden. */
-const newToken = () => (randomUUID() + randomUUID()).replace(/-/g, '');
+import { newToken } from '@/lib/token';
 
 export async function signOut() {
   const supabase = await createSessionClient();

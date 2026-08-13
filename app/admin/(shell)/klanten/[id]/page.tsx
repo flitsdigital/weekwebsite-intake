@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import PageHeader from '@/components/page-header';
 import { PixelIcon, type IconName } from '@/components/icons';
@@ -7,6 +8,7 @@ import { STEPS, TOTAL_STEPS } from '@/lib/questions';
 import { progressPercent } from '@/lib/progress';
 import { STATUS_LABEL, STALL_REASONS } from '@/lib/copy';
 import { formatDate } from '@/lib/dates';
+import { sourceLabel } from '@/lib/lead-source';
 import { intakeSignal, signalText } from '@/lib/intake-signal';
 import { STATUSES, parseStatus } from '@/lib/intake-status';
 import StatusDot from '@/components/status-dot';
@@ -41,6 +43,14 @@ export default async function KlantPage({ params, searchParams }: PageProps<'/ad
   const status = parseStatus(intake.status);
 
   const files = await listIntakeFiles(supabaseFileStore(supabaseAdmin), id, THUMBNAIL_TTL);
+
+  const { data: lead } = intake.lead_id
+    ? await supabaseAdmin
+        .from('leads')
+        .select('id, source, received_at')
+        .eq('id', intake.lead_id)
+        .maybeSingle()
+    : { data: null };
 
   const { data: notes } = await supabaseAdmin
     .from('notes')
@@ -97,6 +107,20 @@ export default async function KlantPage({ params, searchParams }: PageProps<'/ad
             <PixelIcon name="check" />
             Aangemaakt. Stuur deze link naar de klant.
           </p>
+        )}
+
+        {lead && (
+          <Link
+            href={`/admin/leads/${lead.id}`}
+            className="mb-5 flex items-center gap-2 rounded-ww border border-line bg-white px-4 py-3 text-sm hover:border-ink"
+          >
+            <PixelIcon name="zap" className="size-4 text-muted" />
+            <span>
+              Kwam binnen als lead via <strong>{sourceLabel(lead.source)}</strong> op{' '}
+              {formatDate(lead.received_at)}
+            </span>
+            <PixelIcon name="chevron" className="ml-auto size-4 text-muted" />
+          </Link>
         )}
 
         <div className="grid gap-5 lg:grid-cols-[1.7fr_1fr]">

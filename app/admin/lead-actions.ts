@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { parseLeadStatus } from '@/lib/lead-status';
 import { parseLostReason } from '@/lib/copy';
+import { newToken } from '@/lib/token';
 import { addNote } from './note-actions';
 
 function refresh(id: string) {
@@ -63,6 +64,73 @@ export async function saveLeadContact(id: string, formData: FormData) {
 
   await supabaseAdmin.from('leads').update(patch).eq('id', id);
   refresh(id);
+}
+
+/**
+ * Het verkoopmoment: van Lead naar Intake. Zie docs/adr/0002 — dit is de enige
+ * overgang tussen de twee, en hij gaat één kant op.
+ *
+ * De lead blijft bestaan op 'gewonnen'. Zou hij verdwijnen, dan zakt je
+ * conversie structureel omdat juist de gewonnen leads uit de teller vallen.
+ * Gegevens en notities worden gekopieerd, niet gedeeld: de lead is en blijft
+ * het verslag van het verkoopgesprek.
+ */
+export async function convertLeadToIntake(id: string) {
+  const { data: lead } = await supabaseAdmin
+    .from('leads')
+    .select('id, company_name, contact_name, phone, email')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (!lead) return;
+
+  // Dubbelklikken mag geen tweede klant opleveren.
+  const { data: bestaand } = await supabaseAdmin
+    .from('intakes')
+    .select('id')
+    .eq('lead_id', id)
+    .maybeSingle();
+
+  if (bestaand) redirect(`/admin/klanten/${bestaand.id}`);
+
+  const { data: intake } = await supabaseAdmin
+    .from('intakes')
+    .insert({
+      // company_name mag niet leeg zijn; een websitelead heeft alleen een naam.
+      company_name: lead.company_name || lead.contact_name || 'Naamloze klant',
+      contact_name: lead.contact_name,
+      phone: lead.phone,
+      email: lead.email,
+      token: newToken(),
+      lead_id: lead.id,
+    })
+    .select('id')
+    .single();
+
+  if (!intake) return;
+
+  // Notities meeverhuizen als kopie, met hun oorspronkelijke tijdstip: "wil per
+  // se geel in zijn logo" komt uit het verkoopgesprek en is precies wat de
+  // bouwer moet weten.
+  const { data: notes } = await supabaseAdmin
+    .from('notes')
+    .select('body, author, created_at, channel, outcome')
+    .eq('lead_id', id);
+
+  if (notes?.length) {
+    await supabaseAdmin
+      .from('notes')
+      .insert(notes.map((note) => ({ ...note, intake_id: intake.id })));
+  }
+
+  await supabaseAdmin
+    .from('leads')
+    .update({ status: 'gewonnen', next_action_at: null, lost_reason: null })
+    .eq('id', id);
+
+  revalidatePath('/admin/leads');
+  revalidatePath('/admin/klanten');
+  redirect(`/admin/klanten/${intake.id}?nieuw=1`);
 }
 
 export async function updateLead(id: string, formData: FormData) {

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import PageHeader from '@/components/page-header';
 import { PixelIcon, type IconName } from '@/components/icons';
@@ -6,7 +7,7 @@ import { LEAD_STATUS_LABEL, LEAD_STATUS_DOT, DUE_LABEL } from '@/lib/copy';
 import { leadDue, parseLeadStatus, responseMinutes } from '@/lib/lead-status';
 import { formatDate } from '@/lib/dates';
 import { sourceLabel } from '@/lib/lead-source';
-import { saveLeadContact, updateLead, deleteLead } from '../../../lead-actions';
+import { saveLeadContact, updateLead, deleteLead, convertLeadToIntake } from '../../../lead-actions';
 import { deleteNote } from '../../../note-actions';
 import Timeline, { type Note } from '@/components/timeline';
 import FollowUpFields from './followup-fields';
@@ -30,6 +31,13 @@ export default async function LeadPage({ params }: PageProps<'/admin/leads/[id]'
     .eq('lead_id', id)
     .order('created_at', { ascending: false })
     .returns<Note[]>();
+
+  // De koppeling staat op de intake; de teruglink leiden we daaruit af.
+  const { data: klant } = await supabaseAdmin
+    .from('intakes')
+    .select('id, company_name')
+    .eq('lead_id', id)
+    .maybeSingle();
 
   const status = parseLeadStatus(lead.status);
   const today = new Date().toISOString().slice(0, 10);
@@ -82,6 +90,34 @@ export default async function LeadPage({ params }: PageProps<'/admin/leads/[id]'
       />
 
       <div className="mx-auto w-full max-w-5xl px-6 py-8 lg:px-10">
+        {klant ? (
+          <Link
+            href={`/admin/klanten/${klant.id}`}
+            className="mb-5 flex items-center gap-2 rounded-ww border border-line bg-white px-4 py-3 text-sm hover:border-ink"
+          >
+            <PixelIcon name="users" className="size-4 text-muted" />
+            <span>
+              Deze lead is klant geworden — <strong>{klant.company_name}</strong>
+            </span>
+            <PixelIcon name="chevron" className="ml-auto size-4 text-muted" />
+          </Link>
+        ) : (
+          lead.status === 'gewonnen' && (
+            <form action={convertLeadToIntake.bind(null, id)} className="mb-5">
+              <div className="rounded-ww bg-accent px-5 py-4">
+                <p className="font-semibold">Gewonnen — maak er een klant van</p>
+                <p className="mt-1 mb-3 text-sm">
+                  Naam, telefoon, e-mail en de hele gesprekshistorie gaan mee. Je krijgt meteen
+                  de intakelink om te versturen. De lead blijft bestaan voor je cijfers.
+                </p>
+                <button className="min-h-10 rounded-ww bg-ink px-4 text-sm font-semibold text-white">
+                  Omzetten naar klant en openen
+                </button>
+              </div>
+            </form>
+          )
+        )}
+
         <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
           <div className="grid content-start gap-5">
             <Kaart title="Contact en opvolging" icon="clock">
