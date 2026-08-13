@@ -27,6 +27,7 @@ export async function createLead(formData: FormData) {
       contact_name: contact || null,
       phone: phone || null,
       email: String(formData.get('email') ?? '').trim() || null,
+      source: 'handmatig',
       raw: { bron: 'handmatig' },
     })
     .select('id')

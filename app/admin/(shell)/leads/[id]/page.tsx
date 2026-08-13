@@ -5,6 +5,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { LEAD_STATUS_LABEL, LEAD_STATUS_DOT, LOST_REASONS, DUE_LABEL } from '@/lib/copy';
 import { LEAD_STATUSES, leadDue, parseLeadStatus, responseMinutes } from '@/lib/lead-status';
 import { formatDate } from '@/lib/dates';
+import { sourceLabel } from '@/lib/lead-source';
 import { saveLeadFollowUp, updateLead, deleteLead } from '../../../lead-actions';
 import Notes, { type Note } from '@/components/notes';
 
@@ -49,6 +50,7 @@ export default async function LeadPage({ params }: PageProps<'/admin/leads/[id]'
               </span>
             )}
             <span>{DUE_LABEL[due]}</span>
+            <span>via {sourceLabel(lead.source)}</span>
             <span>binnengekomen {formatDate(lead.received_at)}</span>
             {minuten !== null && (
               <span className={minuten <= 5 ? 'text-green-700' : undefined}>

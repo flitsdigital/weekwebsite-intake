@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { parseLeadPayload } from '@/lib/lead-payload';
+import { deriveSource } from '@/lib/lead-source';
 
 /**
  * Waar Zapier de Facebook-leads naartoe stuurt.
@@ -47,6 +48,7 @@ export async function POST(req: Request) {
       contact_name: lead.contactName,
       phone: lead.phone,
       email: lead.email,
+      source: deriveSource(lead.raw),
       raw: lead.raw,
     })
     .select('id')

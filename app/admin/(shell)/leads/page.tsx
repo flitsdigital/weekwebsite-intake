@@ -5,6 +5,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { LEAD_STATUS_LABEL, LEAD_STATUS_DOT, DUE_LABEL } from '@/lib/copy';
 import { DUE_ORDER, leadDue, parseLeadStatus, responseMinutes, type Due } from '@/lib/lead-status';
 import { formatDate } from '@/lib/dates';
+import { sourceLabel } from '@/lib/lead-source';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,6 +28,7 @@ type Row = {
   next_action_at: string | null;
   received_at: string;
   first_attempt_at: string | null;
+  source: string;
 };
 
 export default async function LeadsPage({ searchParams }: PageProps<'/admin/leads'>) {
@@ -36,7 +38,7 @@ export default async function LeadsPage({ searchParams }: PageProps<'/admin/lead
 
   const { data } = await supabaseAdmin
     .from('leads')
-    .select('id, company_name, contact_name, phone, status, next_action_at, received_at, first_attempt_at')
+    .select('id, company_name, contact_name, phone, status, next_action_at, received_at, first_attempt_at, source')
     .order('received_at', { ascending: false });
 
   const alle = ((data ?? []) as Row[]).map((row) => ({
@@ -93,6 +95,7 @@ export default async function LeadsPage({ searchParams }: PageProps<'/admin/lead
               <thead>
                 <tr className="border-b border-line text-left text-xs tracking-wide text-muted uppercase">
                   <th className="px-5 py-3 font-semibold">Bedrijf</th>
+                  <th className="px-3 py-3 font-semibold">Bron</th>
                   <th className="px-3 py-3 font-semibold">Status</th>
                   <th className="px-3 py-3 font-semibold">Aan de beurt</th>
                   <th className="px-3 py-3 font-semibold">Reactietijd</th>
@@ -115,6 +118,9 @@ export default async function LeadsPage({ searchParams }: PageProps<'/admin/lead
                             <span className="block text-xs text-muted">{row.contact_name}</span>
                           )}
                         </Link>
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-muted">
+                        {sourceLabel(row.source)}
                       </td>
                       <td className="px-3 py-3">
                         {status && (
