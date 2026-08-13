@@ -2,13 +2,14 @@ import { notFound } from 'next/navigation';
 import PageHeader from '@/components/page-header';
 import { PixelIcon, type IconName } from '@/components/icons';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { LEAD_STATUS_LABEL, LEAD_STATUS_DOT, LOST_REASONS, DUE_LABEL } from '@/lib/copy';
-import { LEAD_STATUSES, leadDue, parseLeadStatus, responseMinutes } from '@/lib/lead-status';
+import { LEAD_STATUS_LABEL, LEAD_STATUS_DOT, DUE_LABEL } from '@/lib/copy';
+import { leadDue, parseLeadStatus, responseMinutes } from '@/lib/lead-status';
 import { formatDate } from '@/lib/dates';
 import { sourceLabel } from '@/lib/lead-source';
 import { saveLeadContact, updateLead, deleteLead } from '../../../lead-actions';
 import { deleteNote } from '../../../note-actions';
 import Timeline, { type Note } from '@/components/timeline';
+import FollowUpFields from './followup-fields';
 
 export const dynamic = 'force-dynamic';
 
@@ -89,53 +90,11 @@ export default async function LeadPage({ params }: PageProps<'/admin/leads/[id]'
                 remove={deleteNote.bind(null, 'lead', id)}
                 notes={notes ?? []}
                 extra={
-                  <div className="grid gap-3 border-t border-line pt-3">
-                    <label className="grid gap-1">
-                      <span className="text-xs font-semibold tracking-wide text-muted uppercase">
-                        Status van de lead
-                      </span>
-                      <select name="status" defaultValue={lead.status} className={field}>
-                        {LEAD_STATUSES.map((s) => (
-                          <option key={s} value={s}>
-                            {LEAD_STATUS_LABEL[s]}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-
-                    <label className="grid gap-1">
-                      <span className="text-xs font-semibold tracking-wide text-muted uppercase">
-                        Volgende actie op
-                      </span>
-                      <input
-                        type="date"
-                        name="next_action_at"
-                        defaultValue={lead.next_action_at ?? ''}
-                        className={field}
-                      />
-                      <span className="text-xs text-muted">
-                        Leeglaten mag, maar dan valt hij onder &quot;geen vervolgactie&quot;.
-                      </span>
-                    </label>
-
-                    <label className="grid gap-1">
-                      <span className="text-xs font-semibold tracking-wide text-muted uppercase">
-                        Reden, als je hem verliest
-                      </span>
-                      <select
-                        name="lost_reason"
-                        defaultValue={lead.lost_reason ?? ''}
-                        className={field}
-                      >
-                        <option value="">Geen</option>
-                        {Object.entries(LOST_REASONS).map(([value, label]) => (
-                          <option key={value} value={value}>
-                            {label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
+                  <FollowUpFields
+                    status={lead.status}
+                    nextActionAt={lead.next_action_at}
+                    lostReason={lead.lost_reason}
+                  />
                 }
               />
             </Kaart>
