@@ -8,6 +8,7 @@ import { STEPS, TOTAL_STEPS, isVisible } from '@/lib/questions';
 import { progressPercent } from '@/lib/progress';
 import { STATUS_LABEL, STALL_REASONS } from '@/lib/copy';
 import { formatDate } from '@/lib/dates';
+import { origin } from '@/lib/origin';
 import { sourceLabel } from '@/lib/lead-source';
 import { intakeSignal, signalText } from '@/lib/intake-signal';
 import { STATUSES, parseStatus } from '@/lib/intake-status';
@@ -68,7 +69,7 @@ export default async function KlantPage({ params, searchParams }: PageProps<'/ad
   });
   const melding = signalText(signal);
   const percent = progressPercent(answers);
-  const link = `${process.env.NEXT_PUBLIC_APP_URL}/i/${intake.token}`;
+  const link = `${await origin()}/i/${intake.token}`;
 
   return (
     <>

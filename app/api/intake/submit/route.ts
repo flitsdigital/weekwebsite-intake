@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { openIntake } from '@/lib/intake';
 import { EDITABLE } from '@/lib/intake-status';
 import { listIntakeFiles, supabaseFileStore } from '@/lib/intake-files';
+import { origin } from '@/lib/origin';
 
 const SIGNED_URL_DAYS = 7;
 
@@ -62,7 +63,7 @@ async function notify(intake: {
       body: JSON.stringify({
         intake: {
           ...intake,
-          admin_url: `${process.env.NEXT_PUBLIC_APP_URL}/admin/klanten/${intake.id}`,
+          admin_url: `${await origin()}/admin/klanten/${intake.id}`,
         },
         files: files
           .filter((file) => file.url)

@@ -299,7 +299,6 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=      # alleen voor Auth in de backoffice
 SUPABASE_SERVICE_ROLE_KEY=          # NOOIT met NEXT_PUBLIC_
 
 # App
-NEXT_PUBLIC_APP_URL=https://intake.weekwebsite.nl
 N8N_WEBHOOK_URL=
 WHATSAPP_NUMBER=
 ```
