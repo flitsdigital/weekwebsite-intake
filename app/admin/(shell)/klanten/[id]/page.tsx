@@ -9,6 +9,9 @@ import { progressPercent } from '@/lib/progress';
 import { STATUS_LABEL, STALL_REASONS } from '@/lib/copy';
 import { formatDate } from '@/lib/dates';
 import { origin } from '@/lib/origin';
+import { mailsFor } from '@/lib/mails';
+import { createSessionClient } from '@/lib/supabase-server';
+import CopyButton from '@/components/copy-button';
 import { sourceLabel } from '@/lib/lead-source';
 import { intakeSignal, signalText } from '@/lib/intake-signal';
 import { STATUSES, parseStatus } from '@/lib/intake-status';
@@ -70,6 +73,24 @@ export default async function KlantPage({ params, searchParams }: PageProps<'/ad
   const melding = signalText(signal);
   const percent = progressPercent(answers);
   const link = `${await origin()}/i/${intake.token}`;
+
+  // De ondertekening van de mails is degene die nu ingelogd is.
+  const session = await createSessionClient();
+  const {
+    data: { user },
+  } = await session.auth.getUser();
+  const { data: admin } = user?.email
+    ? await supabaseAdmin.from('admins').select('name').eq('email', user.email).maybeSingle()
+    : { data: null };
+
+  const mails = mailsFor({
+    companyName: intake.company_name,
+    contactName: intake.contact_name,
+    intakeUrl: link,
+    deadline: intake.deadline_at,
+    signer: admin?.name ?? '[jouw naam]',
+    phone: process.env.WHATSAPP_NUMBER ?? null,
+  });
 
   return (
     <>
@@ -133,6 +154,38 @@ export default async function KlantPage({ params, searchParams }: PageProps<'/ad
                   Nieuwe link maken — de oude werkt dan niet meer
                 </button>
               </form>
+            </Card>
+
+            <Card title="Mails" icon="mail">
+              <p className="mb-3 text-sm text-muted">
+                Naam, link en opleverdatum staan er al in. Wat tussen haken staat, vul je zelf
+                aan.
+              </p>
+              <div className="grid gap-2">
+                {mails.map((mail) => (
+                  <details key={mail.id} className="rounded-ww border border-line">
+                    <summary className="cursor-pointer px-4 py-3 text-sm font-semibold">
+                      {mail.title}
+                    </summary>
+                    <div className="border-t border-line p-4">
+                      {mail.hint && <p className="mb-3 text-xs text-muted">{mail.hint}</p>}
+                      {mail.subject && (
+                        <p className="mb-3 text-sm">
+                          <span className="text-muted">Onderwerp: </span>
+                          {mail.subject}
+                        </p>
+                      )}
+                      <pre className="font-sans text-sm whitespace-pre-wrap">{mail.body}</pre>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <CopyButton text={mail.body} label="Kopieer bericht" />
+                        {mail.subject && (
+                          <CopyButton text={mail.subject} label="Kopieer onderwerp" />
+                        )}
+                      </div>
+                    </div>
+                  </details>
+                ))}
+              </div>
             </Card>
 
             <Card title="Antwoorden" icon="note">

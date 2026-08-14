@@ -1,6 +1,6 @@
 # PRD — Weekwebsite Intake & Backoffice
 
-**Product:** `intake.weekwebsite.nl`
+**Product:** `start.weekwebsite.nl`
 **Opdrachtgever:** Flits Digital
 **Status:** klaar om te bouwen
 **Laatste update:** augustus 2026

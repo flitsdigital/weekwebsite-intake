@@ -95,7 +95,7 @@ Bouw in deze volgorde en stop bij elk controlepunt. Na fase 3 heb je al iets wer
 **Klaar wanneer:** je een klant kunt aanmaken, de link kunt kopiëren, en na het invullen alle antwoorden en foto's kunt bekijken zonder in Supabase te hoeven kijken.
 
 ### Fase 6 — Afmaken
-- Deploy naar Vercel, subdomein `intake.weekwebsite.nl` koppelen (alleen een CNAME toevoegen, niets aan nameservers of MX-records)
+- Deploy naar Vercel, subdomein `start.weekwebsite.nl` koppelen (alleen een CNAME toevoegen, niets aan nameservers of MX-records)
 - Lege staten, laadtoestanden, foutafhandeling
 - Opruimtaak voor concepten ouder dan zes maanden
 - Nalopen op een echte telefoon

@@ -315,7 +315,7 @@ WHATSAPP_NUMBER=
 {
   "intake": { "id": "...", "company_name": "...", "contact_name": "...",
               "phone": "...", "email": "...", "deadline_at": "2026-08-21",
-              "answers": { }, "admin_url": "https://intake.weekwebsite.nl/admin/klanten/..." },
+              "answers": { }, "admin_url": "https://start.weekwebsite.nl/admin/klanten/..." },
   "files": [ { "kind": "photo", "name": "IMG_1234.jpg",
                "url": "https://...signed...", "expires_in_days": 7 } ]
 }
