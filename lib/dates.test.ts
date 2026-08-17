@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { daysSince, daysUntil, formatDate, workingDaysBetween } from './dates.ts';
+import { daysSince, daysUntil, formatDate, timeAgo, workingDaysBetween } from './dates.ts';
 
 process.env.TZ = 'Europe/Amsterdam';
 
@@ -49,6 +49,18 @@ test('werkdagen tellen niet terug', () => {
   const maandag = Date.parse('2026-08-10T10:00:00Z');
   const vrijdag = Date.parse('2026-08-07T10:00:00Z');
   assert.equal(workingDaysBetween(maandag, vrijdag), 0);
+});
+
+test('hoe lang geleden een lead binnenkwam', () => {
+  const geleden = (ms: number) => new Date(NU - ms).toISOString();
+
+  assert.equal(timeAgo(geleden(30_000), NU), 'net binnen');
+  assert.equal(timeAgo(geleden(4 * 60_000), NU), '4 min geleden');
+  assert.equal(timeAgo(geleden(59 * 60_000), NU), '59 min geleden');
+  assert.equal(timeAgo(geleden(60 * 60_000), NU), '1 uur geleden');
+  assert.equal(timeAgo(geleden(25 * 3600_000), NU), 'gisteren');
+  assert.equal(timeAgo(geleden(5 * 86_400_000), NU), '5 dagen geleden');
+  assert.equal(timeAgo(geleden(70 * 86_400_000), NU), '2 maanden geleden');
 });
 
 test('een tijdstempel wordt ook leesbaar weergegeven', () => {

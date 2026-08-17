@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PixelIcon } from '@/components/icons';
 import { createBrowserClient } from '@supabase/ssr';
 
@@ -13,10 +13,12 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [state, setState] = useState<'idle' | 'busy' | 'sent' | 'error'>('idle');
 
-  const reason =
-    typeof window !== 'undefined'
-      ? REASONS[new URLSearchParams(window.location.search).get('reden') ?? '']
-      : undefined;
+  // Na het renderen uitlezen, niet tijdens: de server kent de queryreeks niet en
+  // rendert de melding dus niet mee. Direct uitlezen levert een hydratiefout op.
+  const [reason, setReason] = useState<string>();
+  useEffect(() => {
+    setReason(REASONS[new URLSearchParams(window.location.search).get('reden') ?? '']);
+  }, []);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();

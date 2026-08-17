@@ -4,7 +4,7 @@ import { PixelIcon } from '@/components/icons';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { LEAD_STATUS_LABEL, LEAD_STATUS_DOT, DUE_LABEL } from '@/lib/copy';
 import { DUE_ORDER, leadDue, parseLeadStatus, responseMinutes, type Due } from '@/lib/lead-status';
-import { formatDate } from '@/lib/dates';
+import { formatDate, formatDateTime, timeAgo } from '@/lib/dates';
 import { sourceLabel } from '@/lib/lead-source';
 
 export const dynamic = 'force-dynamic';
@@ -115,7 +115,7 @@ export default async function LeadsPage({ searchParams }: PageProps<'/admin/lead
               <thead>
                 <tr className="border-b border-line text-left text-xs tracking-wide text-muted uppercase">
                   <th className="px-5 py-3 font-semibold">Bedrijf</th>
-                  <th className="px-3 py-3 font-semibold">Bron</th>
+                  <th className="px-3 py-3 font-semibold">Binnengekomen</th>
                   <th className="px-3 py-3 font-semibold">Status</th>
                   <th className="px-3 py-3 font-semibold">Aan de beurt</th>
                   <th className="px-3 py-3 font-semibold">Reactietijd</th>
@@ -127,20 +127,31 @@ export default async function LeadsPage({ searchParams }: PageProps<'/admin/lead
                   const status = parseLeadStatus(row.status);
                   const minuten = responseMinutes(row.received_at, row.first_attempt_at);
 
+                  // Bron staat onder de naam en niet in een eigen kolom: het is context
+                  // bij het bellen, geen kolom waarop je de lijst scant.
+                  const onder = [row.company_name ? row.contact_name : null, sourceLabel(row.source)]
+                    .filter(Boolean)
+                    .join(' · ');
+
                   return (
                     <tr key={row.id} className="hover:bg-bg">
-                      <td className="px-5 py-3">
+                      <td
+                        className={`border-l-2 px-5 py-3 ${
+                          URGENT.includes(due) ? 'border-l-red-700' : 'border-l-transparent'
+                        }`}
+                      >
                         <Link href={`/admin/leads/${row.id}`} className="block">
                           <span className="font-semibold">
                             {row.company_name ?? row.contact_name ?? 'Naamloze lead'}
                           </span>
-                          {row.company_name && row.contact_name && (
-                            <span className="block text-xs text-muted">{row.contact_name}</span>
-                          )}
+                          <span className="block text-xs text-muted">{onder}</span>
                         </Link>
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-muted">
-                        {sourceLabel(row.source)}
+                      <td
+                        className="px-3 py-3 whitespace-nowrap text-muted"
+                        title={formatDateTime(row.received_at)}
+                      >
+                        {timeAgo(row.received_at)}
                       </td>
                       <td className="px-3 py-3">
                         {status && (
