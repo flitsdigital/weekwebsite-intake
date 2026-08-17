@@ -8,7 +8,10 @@ import { activeHref } from '@/lib/nav-active';
 const GROUPS: { label: string; items: { href: string; label: string; icon: IconName }[] }[] = [
   {
     label: 'Verkoop',
-    items: [{ href: '/admin/leads', label: 'Leads', icon: 'zap' }],
+    items: [
+      { href: '/admin/leads', label: 'Leads', icon: 'zap' },
+      { href: '/admin/belflow', label: 'Belflow', icon: 'clock' },
+    ],
   },
   {
     label: 'Overzicht',
